@@ -1,0 +1,13 @@
+syntax = "proto3";
+package tracking;
+
+message VehicleUpdate {
+  string vehicleId = 1;
+  double lat = 2;
+  double lon = 3;
+  int64 timestamp = 4;
+}
+
+service Tracker {
+  rpc StreamLocation(stream VehicleUpdate) returns (stream VehicleUpdate);
+}
