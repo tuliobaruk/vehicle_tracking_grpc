@@ -1,0 +1,32 @@
+{
+  "name": "eta-service",
+  "version": "1.0.0",
+  "description": "Serviço de Estimativa de Tempo de Chegada - Calcula ETAs baseados em dados de rastreamento",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "npx ts-node src/server.ts",
+    "interactive": "npx ts-node src/eta-client.ts",
+    "eta": "npx ts-node src/eta-client.ts",
+    "test-single": "npx ts-node src/eta-client.ts --vehicle carro-01 --lat -8.0476 --lon -34.8770",
+    "test-all": "npx ts-node src/eta-client.ts --all --lat -8.0476 --lon -34.8770",
+    "monitor": "npx ts-node src/eta-client.ts --monitor",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "1.13.3",
+    "@grpc/proto-loader": "0.7.15",
+    "yargs": "^17.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.20",
+    "@types/yargs": "^17.0.33",
+    "ts-node": "10.9.2",
+    "typescript": "5.8.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
