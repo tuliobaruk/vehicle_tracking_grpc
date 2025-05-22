@@ -1,0 +1,42 @@
+syntax = "proto3";
+package eta;
+
+message ETARequest {
+  string vehicleId = 1;
+  double destinationLat = 2;
+  double destinationLon = 3;
+}
+
+message ETAResponse {
+  string vehicleId = 1;
+  double currentLat = 2;
+  double currentLon = 3;
+  double destinationLat = 4;
+  double destinationLon = 5;
+  double distanceKm = 6;
+  int32 currentSpeed = 7;
+  int32 estimatedMinutes = 8;
+  string arrivalTime = 9;
+  string trafficCondition = 10;
+  string weatherCondition = 11;
+  double confidence = 12;
+  string calculatedAt = 13;
+}
+
+message MultipleETARequest {
+  double destinationLat = 1;
+  double destinationLon = 2;
+}
+
+message MultipleETAResponse {
+  double destinationLat = 1;
+  double destinationLon = 2;
+  repeated ETAResponse etas = 3;
+  string calculatedAt = 4;
+}
+
+service ETAService {
+  rpc CalculateETA(ETARequest) returns (ETAResponse);
+  
+  rpc GetMultipleETAs(MultipleETARequest) returns (MultipleETAResponse);
+}
