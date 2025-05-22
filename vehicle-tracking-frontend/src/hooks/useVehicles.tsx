@@ -1,48 +1,254 @@
-import { useEffect, useState } from 'react';
-import type { Vehicle } from '../types';
+import { useEffect, useState, useCallback, useRef } from "react";
+import type { Vehicle } from "../types";
+
+interface VehicleData {
+  vehicleId: string;
+  lat: number;
+  lon: number;
+  vel: number;
+  timestamp: number;
+  lastUpdate: number;
+}
+
+interface WebSocketMessage {
+  type: "vehicles" | "error" | "status";
+  data: VehicleData[] | string;
+}
 
 export const useVehicles = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
-  const gpxPoints = [
-    { lat: -8.11382, lon: -35.030983 },
-    { lat: -8.11338, lon: -35.030822 },
-    { lat: -8.113186, lon: -35.030792 },
-    { lat: -8.112972, lon: -35.030775 },
-    { lat: -8.112968, lon: -35.030199 },
-    { lat: -8.112941, lon: -35.029089 },
-    { lat: -8.112941, lon: -35.028875 },
-    { lat: -8.112958, lon: -35.028693 },
-    { lat: -8.112992, lon: -35.028522 },
-    { lat: -8.113032, lon: -35.02838 },
-    { lat: -8.113118, lon: -35.028158 },
-    { lat: -8.113188, lon: -35.027997 },
-    { lat: -8.113448, lon: -35.027455 },
-    { lat: -8.113487, lon: -35.027376 },
-    { lat: -8.113565, lon: -35.027217 },
-    { lat: -8.113612, lon: -35.027098 },
-    { lat: -8.113673, lon: -35.026912 },
-    { lat: -8.113712, lon: -35.026756 },
-    { lat: -8.113746, lon: -35.026588 },
-    { lat: -8.113892, lon: -35.024773 },
-    { lat: -8.113992, lon: -35.023516 }
-  ];
+  // Função para converter dados do gRPC para o formato do frontend
+  const convertVehicleData = useCallback(
+    (vehicleData: VehicleData): Vehicle => ({
+      id: vehicleData.vehicleId,
+      lat: vehicleData.lat,
+      lon: vehicleData.lon,
+      speed: vehicleData.vel,
+      timestamp: vehicleData.timestamp,
+      lastUpdate: vehicleData.lastUpdate,
+    }),
+    []
+  );
 
-  useEffect(() => {
-    let index = 0;
+  // Função para conectar ao WebSocket
+  const connectWebSocket = useCallback(() => {
+    // Se já está conectado, não tenta reconectar
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
 
-    const interval = setInterval(() => {
-      if (index < gpxPoints.length) {
-        const point = gpxPoints[index];
-        setVehicles([{ id: 'carro-01', lat: point.lat, lon: point.lon }]);
-        index++;
+    try {
+      const ws = new WebSocket("ws://localhost:3001");
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log("🔌 Conectado ao WebSocket do Gateway");
+        setIsConnected(true);
+        setError(null);
+        reconnectAttempts.current = 0;
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message: WebSocketMessage = JSON.parse(event.data);
+
+          if (message.type === "vehicles" && Array.isArray(message.data)) {
+            const vehicleList = message.data.map(convertVehicleData);
+            setVehicles(vehicleList);
+          } else if (message.type === "error") {
+            console.error("❌ Erro do WebSocket:", message.data);
+            setError(message.data as string);
+          }
+        } catch (err) {
+          console.error("❌ Erro ao processar mensagem WebSocket:", err);
+        }
+      };
+
+      ws.onclose = (event) => {
+        console.log("🔌 WebSocket desconectado:", event.code, event.reason);
+        setIsConnected(false);
+
+        // Tenta reconectar se não foi um fechamento intencional
+        if (
+          event.code !== 1000 &&
+          reconnectAttempts.current < maxReconnectAttempts
+        ) {
+          const delay = Math.min(
+            1000 * Math.pow(2, reconnectAttempts.current),
+            30000
+          );
+          console.log(
+            `🔄 Tentando reconectar em ${delay}ms... (tentativa ${
+              reconnectAttempts.current + 1
+            }/${maxReconnectAttempts})`
+          );
+
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectAttempts.current++;
+            connectWebSocket();
+          }, delay);
+        } else if (reconnectAttempts.current >= maxReconnectAttempts) {
+          setError(
+            "Não foi possível conectar ao servidor após várias tentativas"
+          );
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("❌ Erro no WebSocket:", error);
+        setError("Erro de conexão com o servidor");
+      };
+    } catch (err) {
+      console.error("❌ Erro ao criar WebSocket:", err);
+      setError("Não foi possível conectar ao servidor");
+    }
+  }, [convertVehicleData]);
+
+  // Função para buscar veículos via HTTP (fallback)
+  const fetchVehicles = useCallback(async () => {
+    try {
+      const response = await fetch("http://localhost:3001/api/vehicles");
+      const result = await response.json();
+
+      if (result.success && Array.isArray(result.data)) {
+        const vehicleList = result.data.map(convertVehicleData);
+        setVehicles(vehicleList);
+        setError(null);
       } else {
-        index = 0;
+        throw new Error(result.message || "Erro ao buscar veículos");
       }
-    }, 3000);
+    } catch (err) {
+      console.error("❌ Erro ao buscar veículos:", err);
+      setError("Erro ao buscar dados dos veículos");
+    }
+  }, [convertVehicleData]);
 
-    return () => clearInterval(interval);
+  // Função para calcular ETA
+  const calculateETA = useCallback(
+    async (
+      vehicleId: string,
+      destinationLat: number,
+      destinationLon: number
+    ) => {
+      try {
+        const response = await fetch("http://localhost:3001/api/eta", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            vehicleId,
+            destinationLat,
+            destinationLon,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          return result.data;
+        } else {
+          throw new Error(result.message || "Erro ao calcular ETA");
+        }
+      } catch (err) {
+        console.error("❌ Erro ao calcular ETA:", err);
+        throw err;
+      }
+    },
+    []
+  );
+
+  // Função para calcular ETA de todos os veículos
+  const calculateAllETAs = useCallback(
+    async (destinationLat: number, destinationLon: number) => {
+      try {
+        const response = await fetch("http://localhost:3001/api/eta/all", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            destinationLat,
+            destinationLon,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          return result.data;
+        } else {
+          throw new Error(result.message || "Erro ao calcular ETAs");
+        }
+      } catch (err) {
+        console.error("❌ Erro ao calcular ETAs:", err);
+        throw err;
+      }
+    },
+    []
+  );
+
+  // Função para verificar status da conexão
+  const checkStatus = useCallback(async () => {
+    try {
+      const response = await fetch("http://localhost:3001/api/status");
+      const result = await response.json();
+      return result;
+    } catch (err) {
+      console.error("❌ Erro ao verificar status:", err);
+      return null;
+    }
   }, []);
 
-  return vehicles;
+  // Effect para conectar ao WebSocket
+  useEffect(() => {
+    connectWebSocket();
+
+    // Cleanup
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close(1000, "Component unmounting");
+      }
+    };
+  }, [connectWebSocket]);
+
+  // Fallback: se WebSocket não conectar, usa polling HTTP
+  useEffect(() => {
+    let pollInterval: number;
+
+    if (!isConnected) {
+      // Se não conectado via WebSocket, faz polling a cada 3 segundos
+      pollInterval = setInterval(fetchVehicles, 3000);
+      // Busca imediatamente
+      fetchVehicles();
+    }
+
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [isConnected, fetchVehicles]);
+
+  return {
+    vehicles,
+    isConnected,
+    error,
+    calculateETA,
+    calculateAllETAs,
+    checkStatus,
+    reconnect: connectWebSocket,
+  };
 };
