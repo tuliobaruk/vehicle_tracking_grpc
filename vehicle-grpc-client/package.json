@@ -6,7 +6,7 @@
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npm run build && node dist/client.js",
-    "serve": "ts-node src/server.ts"
+    "serve": "ts-node src/client.ts"
   },
   "author": "",
   "license": "ISC",
