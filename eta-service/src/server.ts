@@ -2,7 +2,11 @@ import path from "path";
 import * as grpc from "@grpc/grpc-js";
 const protoLoader = require("@grpc/proto-loader");
 
-const PROTO_PATH = path.resolve(__dirname, "../../protos/eta.proto");
+const TRACKING_SERVICE_HOST = process.env.TRACKING_SERVICE_HOST;
+const TRACKING_SERVICE_PORT = process.env.TRACKING_SERVICE_PORT;
+const TRACKING_SERVICE_URL = `${TRACKING_SERVICE_HOST}:${TRACKING_SERVICE_PORT}`;
+
+const PROTO_PATH = path.resolve(__dirname, "../protos/eta.proto");
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
   longs: String,
@@ -13,7 +17,7 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 const etaProto = grpc.loadPackageDefinition(packageDefinition) as any;
 
 // Cliente para comunicar com a Central de Rastreamento
-const TRACKING_PROTO_PATH = path.resolve(__dirname, "../../protos/tracking.proto");
+const TRACKING_PROTO_PATH = path.resolve(__dirname, "../protos/tracking.proto");
 const trackingPackageDef = protoLoader.loadSync(TRACKING_PROTO_PATH, {
   keepCase: true,
   longs: String,
@@ -23,7 +27,7 @@ const trackingPackageDef = protoLoader.loadSync(TRACKING_PROTO_PATH, {
 });
 const trackingProto = grpc.loadPackageDefinition(trackingPackageDef) as any;
 const trackingClient = new trackingProto.tracking.Tracker(
-  "localhost:50051",
+  TRACKING_SERVICE_URL,
   grpc.credentials.createInsecure()
 );
 
@@ -364,6 +368,7 @@ function main() {
 
       console.log("⏰ Serviço de Estimativa de Entrega iniciado!");
       console.log(`🌐 Servidor rodando na porta: ${port}`);
+      console.log(`🔗 Conectado ao tracking service em: ${TRACKING_SERVICE_URL}`);
       console.log("📊 Pronto para calcular ETAs...");
       console.log("=".repeat(50));
     }

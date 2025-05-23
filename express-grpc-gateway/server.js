@@ -16,9 +16,17 @@ const wss = new WebSocketServer({ server });
 app.use(cors());
 app.use(express.json());
 
+const TRACKING_SERVICE_HOST = process.env.TRACKING_SERVICE_HOST;
+const TRACKING_SERVICE_PORT = process.env.TRACKING_SERVICE_PORT;
+const ETA_SERVICE_HOST = process.env.ETA_SERVICE_HOST;
+const ETA_SERVICE_PORT = process.env.ETA_SERVICE_PORT;
+
+const TRACKING_SERVICE_URL = `${TRACKING_SERVICE_HOST}:${TRACKING_SERVICE_PORT}`;
+const ETA_SERVICE_URL = `${ETA_SERVICE_HOST}:${ETA_SERVICE_PORT}`;
+
 // Configuração do cliente gRPC
-const TRACKING_PROTO_PATH = path.resolve(__dirname, '../protos/tracking.proto');
-const ETA_PROTO_PATH = path.resolve(__dirname, '../protos/eta.proto');
+const TRACKING_PROTO_PATH = path.resolve(__dirname, './protos/tracking.proto');
+const ETA_PROTO_PATH = path.resolve(__dirname, './protos/eta.proto');
 
 const trackingPackageDef = protoLoader.loadSync(TRACKING_PROTO_PATH, {
   keepCase: true,
@@ -40,8 +48,8 @@ const trackingProto = grpc.loadPackageDefinition(trackingPackageDef);
 const etaProto = grpc.loadPackageDefinition(etaPackageDef);
 
 // Clientes gRPC
-const trackingClient = new trackingProto.tracking.Tracker('localhost:50051', grpc.credentials.createInsecure());
-const etaClient = new etaProto.eta.ETAService('localhost:50052', grpc.credentials.createInsecure());
+const trackingClient = new trackingProto.tracking.Tracker(TRACKING_SERVICE_URL, grpc.credentials.createInsecure());
+const etaClient = new etaProto.eta.ETAService(ETA_SERVICE_URL, grpc.credentials.createInsecure());
 
 // Armazenamento em memória dos veículos
 const vehiclePositions = new Map();
@@ -90,7 +98,7 @@ function monitorVehicles() {
   setInterval(() => {
     trackingClient.ListVehicles({}, (error, response) => {
       if (error) {
-        console.error('❌ Erro ao listar veículos:', error.message);
+        console.error('❌ Erro ao listar veículos:', error);
         return;
       }
 
@@ -237,7 +245,11 @@ app.get('/api/status', (req, res) => {
     status: 'online',
     connectedVehicles: vehiclePositions.size,
     websocketClients: wss.clients.size,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    services: {
+      tracking: TRACKING_SERVICE_URL,
+      eta: ETA_SERVICE_URL
+    }
   });
 });
 

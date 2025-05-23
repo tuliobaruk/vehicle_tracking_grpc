@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 const protoLoader = require("@grpc/proto-loader");
 
-const PROTO_PATH = path.resolve(__dirname, "../../protos/tracking.proto");
+const PROTO_PATH = path.resolve(__dirname, "../protos/tracking.proto");
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
   longs: String,
