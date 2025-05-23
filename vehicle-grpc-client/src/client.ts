@@ -69,7 +69,7 @@ let rl: readline.Interface | null = null;
 
 function setupInteractiveMode() {
   if (!interactiveMode) return;
-  
+
   rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
@@ -102,7 +102,7 @@ function handleInteractiveCommand(command: string) {
   }
 
   const oldSpeed = currentSpeed;
-  
+
   switch (command) {
     case '+':
     case '=':
@@ -111,7 +111,7 @@ function handleInteractiveCommand(command: string) {
       console.log(`🚀 Acelerando: ${oldSpeed} → ${currentSpeed} km/h`);
       console.log(`⏱️  Intervalo ajustado: ${currentInterval}s (era ${baseInterval}s)`);
       break;
-    
+
     case '-':
     case '_':
       currentSpeed = Math.max(10, currentSpeed - 10);
@@ -119,21 +119,21 @@ function handleInteractiveCommand(command: string) {
       console.log(`🐌 Reduzindo: ${oldSpeed} → ${currentSpeed} km/h`);
       console.log(`⏱️  Intervalo ajustado: ${currentInterval}s (era ${baseInterval}s)`);
       break;
-    
+
     case 'p':
     case 'pause':
       isPaused = !isPaused;
       console.log(isPaused ? '⏸️  Veículo PAUSADO' : '▶️  Veículo RETOMADO');
       break;
-    
+
     case 'status':
       showStatus();
       break;
-    
+
     case 'help':
       showHelp();
       break;
-    
+
     case 'q':
     case 'quit':
       console.log('👋 Encerrando simulação...');
@@ -141,7 +141,7 @@ function handleInteractiveCommand(command: string) {
       if (rl) rl.close();
       process.exit(0);
       break;
-    
+
     default:
       // Comando para definir velocidade específica: s 60
       if (command.startsWith('s ')) {
@@ -163,9 +163,9 @@ function handleInteractiveCommand(command: string) {
 
 function showStatus() {
   const speedRatio = (currentSpeed / 50).toFixed(2);
-  const frequencyChange = currentInterval < baseInterval ? '↑ Mais frequente' : 
+  const frequencyChange = currentInterval < baseInterval ? '↑ Mais frequente' :
                          currentInterval > baseInterval ? '↓ Menos frequente' : '→ Normal';
-  
+
   console.log('\n📊 STATUS DO VEÍCULO:');
   console.log(`🚗 ID: ${vehicleId}`);
   console.log(`🔗 Conexão: ${isConnected ? '✅ CONECTADO' : hasConflict ? '❌ CONFLITO' : '⏳ CONECTANDO'}`);
@@ -173,7 +173,7 @@ function showStatus() {
   console.log(`⏱️  Intervalo: ${currentInterval}s (base: ${baseInterval}s) ${frequencyChange}`);
   console.log(`⏸️  Estado: ${isPaused ? 'PAUSADO' : 'RODANDO'}`);
   console.log(`🌐 Servidor: ${serverAddress}`);
-  
+
   if (hasConflict) {
     console.log('');
     console.log('⚠️  CONFLITO DETECTADO:');
@@ -206,27 +206,30 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
   console.log(`⏱️  Intervalo base: ${interval}s por ponto`);
   console.log(`🏃 Velocidade inicial: ${initialVel} km/h`);
   console.log(`🌐 Conectando ao servidor: ${serverAddress}`);
-  
+
   // Calcula intervalo inicial baseado na velocidade
   currentInterval = calculateInterval(currentSpeed);
   if (currentInterval !== baseInterval) {
     console.log(`⏱️  Intervalo ajustado: ${currentInterval}s (velocidade ${currentSpeed} km/h)`);
   }
-  
+
   console.log('='.repeat(50));
 
   const points: Point[] = parseGpx(file);
   console.log(`📊 ${points.length} pontos carregados do GPX`);
-  
+
+  const destination = points[points.length - 1]; // Pegando o destino no último ponto
+  console.log(`🎯 Destino: ${destination.lat}, ${destination.lon}`);
+
   setupInteractiveMode();
-  
+
   const call = client.StreamLocation();
 
   call.on('data', (response: any) => {
     if (response.command === 'CONFLITO_ID' || response.status === 'ERROR_DUPLICATE_ID') {
       hasConflict = true;
       isConnected = false;
-      
+
       console.log('\n🚨 ═══════════════════════════════════════════════════════════');
       console.log('🚨 ❌ CONFLITO DE ID DETECTADO!');
       console.log(`🚨 • O ID "${vehicleId}" já está sendo usado por outro cliente`);
@@ -238,14 +241,14 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
       console.log('   2. Pare o outro cliente que está usando este ID');
       console.log('   3. Verifique se não há processo duplicado rodando');
       console.log('');
-      
+
       setTimeout(() => {
         exitWithError(`ID "${vehicleId}" em uso. Use outro ID.`, 2);
       }, 3000);
-      
+
       return;
     }
-    
+
     if (response.status === 'TRACKING_ACTIVE' && !isConnected) {
       isConnected = true;
       console.log('✅ Conexão estabelecida com sucesso!');
@@ -257,10 +260,10 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
       console.log(`📡 Resposta da Central:`);
       console.log(`  ✅ Status: ${response.status || 'N/A'}`);
     }
-    
+
     if (response.command && !hasConflict) {
       const oldSpeed = currentSpeed;
-      
+
       // Processa comandos da central apenas se comandos automáticos estiverem ativados
       switch (response.command) {
         case 'REDUZIR_VELOCIDADE':
@@ -285,7 +288,7 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
           }
       }
     }
-    
+
     if (!interactiveMode && !hasConflict) {
       const responseTime = parseInt(response.timestamp) || Date.now();
       console.log(`  ⏰ Timestamp da resposta: ${new Date(responseTime).toLocaleString('pt-BR')}`);
@@ -295,12 +298,12 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
 
   call.on('error', (error: any) => {
     console.error('❌ Erro na conexão com a central:', error.message);
-    
+
     if (error.message.includes('UNAVAILABLE') || error.message.includes('Connection refused')) {
       console.error('💡 Verifique se o central-tracking-service está rodando');
       console.error('💡 Comando: cd central-tracking-service && npm run dev');
     }
-    
+
     exitWithError('Falha na conexão gRPC', 1);
   });
 
@@ -312,7 +315,7 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
   });
 
   console.log('⏳ Aguardando confirmação do servidor...');
-  
+
   const testUpdate = {
     vehicleId: id,
     lat: points[0]?.lat || 0,
@@ -320,15 +323,15 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
     timestamp: Date.now(),
     vel: currentSpeed
   };
-  
+
   call.write(testUpdate);
-  
+
   await new Promise(res => setTimeout(res, 1000));
-  
+
   if (hasConflict) {
     return;
   }
-  
+
   if (!isConnected) {
     console.log('⚠️  Servidor não respondeu, mas continuando...');
   }
@@ -339,25 +342,27 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
     while (isPaused && isRunning && !hasConflict) {
       await new Promise(res => setTimeout(res, 1000));
     }
-    
+
     if (!isRunning || hasConflict) break;
-    
+
     const pt = points[i];
     const now = Date.now();
-    
+
     const update = {
       vehicleId: id,
       lat: pt.lat,
       lon: pt.lon,
       timestamp: now,
-      vel: currentSpeed
+      vel: currentSpeed,
+      destLat: destination.lat,
+      destLon: destination.lon
     };
-    
+
     if (interactiveMode) {
       // Modo interativo: log compacto com intervalo atual
       const intervalInfo = currentInterval !== baseInterval ? ` (${currentInterval}s)` : '';
       const connectionStatus = hasConflict ? '❌ CONFLITO' : isConnected ? '🟢' : '🟡';
-      process.stdout.write(`\r${connectionStatus} ${id} | Pos: ${i + 1}/${points.length} | ${pt.lat.toFixed(6)}, ${pt.lon.toFixed(6)} | ${currentSpeed} km/h${intervalInfo} | ${isPaused ? '⏸️' : '▶️'} `);
+      process.stdout.write(`\r${connectionStatus} ${id} | Pos: ${i + 1}/${points.length} | ${pt.lat.toFixed(6)}, ${pt.lon.toFixed(6)} | ${currentSpeed} km/h${intervalInfo} | ${isPaused ? '⏸️' : '▶️'} | Destino: ${destination.lat}, ${destination.lon}`);
     } else {
       // Modo normal: log completo
       console.log(`📍 Enviando posição ${i + 1}/${points.length}:`);
@@ -366,7 +371,7 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
       console.log(`  ⏱️  Intervalo: ${currentInterval}s`);
       console.log(`  ⏰ ${new Date(now).toLocaleString('pt-BR')}`);
     }
-    
+
     try {
       call.write(update);
     } catch (error) {
@@ -375,7 +380,7 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
       }
       break;
     }
-    
+
     // Usa o intervalo dinâmico atual
     await new Promise(res => setTimeout(res, currentInterval * 1000));
   }
@@ -385,7 +390,7 @@ async function simulate(file: string, id: string, interval: number, initialVel: 
   } else {
     console.log('\n✅ Simulação concluída');
   }
-  
+
   call.end();
   if (rl) rl.close();
 }
