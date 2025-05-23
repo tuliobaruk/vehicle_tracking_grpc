@@ -28,7 +28,7 @@ interface MapProps {
 }
 
 interface MapEventsProps {
-  onMapClick: (lat: number, lon: number) => void;  
+  onMapClick: (lat: number, lon: number) => void;
 }
 
 const MapEvents = ({ onMapClick }: MapEventsProps) => {
@@ -40,7 +40,7 @@ const MapEvents = ({ onMapClick }: MapEventsProps) => {
   return null;
 };
 
-export const Map = ({ vehicles, calculateETA, calculateAllETAs, isConnected }: MapProps) => {
+export const Map = ({ vehicles, calculateETA, calculateAllETAs }: MapProps) => {
   const [destination, setDestination] = useState<{ lat: number; lon: number } | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [etaData, setEtaData] = useState<ETAResponse | null>(null);
@@ -64,7 +64,7 @@ export const Map = ({ vehicles, calculateETA, calculateAllETAs, isConnected }: M
 
     setLoading(true);
     setSelectedVehicle(vehicleId);
-    
+
     try {
       const eta = await calculateETA(vehicleId, destination.lat, destination.lon);
       setEtaData(eta);
@@ -86,7 +86,7 @@ export const Map = ({ vehicles, calculateETA, calculateAllETAs, isConnected }: M
 
     setLoading(true);
     setSelectedVehicle(null);
-    
+
     try {
       const etas = await calculateAllETAs(destination.lat, destination.lon);
       setAllETAs(etas);
@@ -118,21 +118,6 @@ export const Map = ({ vehicles, calculateETA, calculateAllETAs, isConnected }: M
 
   return (
     <div style={{ position: 'relative', height: '100vh', width: '100%' }}>
-      {/* Status de Conexão */}
-      <div style={{
-        position: 'absolute',
-        top: 10,
-        left: 10,
-        zIndex: 1000,
-        background: isConnected ? '#4CAF50' : '#F44336',
-        color: 'white',
-        padding: '8px 12px',
-        borderRadius: '4px',
-        fontSize: '12px',
-        fontWeight: 'bold'
-      }}>
-        {isConnected ? '🟢 Conectado' : '🔴 Desconectado'}
-      </div>
 
       {/* Painel de Controle */}
       <div style={{
@@ -152,7 +137,7 @@ export const Map = ({ vehicles, calculateETA, calculateAllETAs, isConnected }: M
         <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>
           🎯 Controle de ETA
         </h3>
-        
+
         <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#666' }}>
           Clique no mapa para selecionar destino
         </p>
@@ -280,7 +265,7 @@ export const Map = ({ vehicles, calculateETA, calculateAllETAs, isConnected }: M
                 </div>
               </div>
             ))}
-            
+
             {allETAs.etas.length > 5 && (
               <div style={{ fontSize: '10px', color: '#666', textAlign: 'center', marginTop: '8px' }}>
                 ... e mais {allETAs.etas.length - 5} veículo(s)
@@ -317,14 +302,14 @@ export const Map = ({ vehicles, calculateETA, calculateAllETAs, isConnected }: M
           attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        
+
         <MapEvents onMapClick={handleMapClick} />
-        
+
         {/* Marcadores dos Veículos */}
         {vehicles.map((vehicle) => (
-          <Marker 
-            key={vehicle.id} 
-            position={[vehicle.lat, vehicle.lon]} 
+          <Marker
+            key={vehicle.id}
+            position={[vehicle.lat, vehicle.lon]}
             icon={vehicleIcon}
           >
             <Popup>
@@ -345,7 +330,7 @@ export const Map = ({ vehicles, calculateETA, calculateAllETAs, isConnected }: M
                     {vehicle.lastUpdate ? new Date(vehicle.lastUpdate).toLocaleTimeString('pt-BR') : 'N/A'}
                   </div>
                 </div>
-                
+
                 {destination && (
                   <button
                     onClick={() => handleCalculateETA(vehicle.id)}

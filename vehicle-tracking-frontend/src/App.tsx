@@ -4,14 +4,14 @@ import { useVehicles } from './hooks/useVehicles';
 import './App.css';
 
 function App() {
-  const { 
-    vehicles, 
-    isConnected, 
-    error, 
-    calculateETA, 
-    calculateAllETAs, 
+  const {
+    vehicles,
+    isConnected,
+    error,
+    calculateETA,
+    calculateAllETAs,
     checkStatus,
-    reconnect 
+    reconnect
   } = useVehicles();
 
   const [showStatus, setShowStatus] = useState(false);
@@ -57,13 +57,13 @@ function App() {
         color: 'white',
         padding: '8px 16px',
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'space-evenly',
         alignItems: 'center',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
         <div>
           <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
-            🚗 Sistema de Rastreamento de Veículos
+            Sistema de Rastreamento de Veículos
           </h1>
           <div style={{ fontSize: '12px', opacity: 0.9 }}>
             {vehicles.length} veículo{vehicles.length !== 1 ? 's' : ''} conectado{vehicles.length !== 1 ? 's' : ''}
@@ -156,7 +156,7 @@ function App() {
             <div style={{ marginBottom: '8px' }}>
               <strong>🔌 WebSocket:</strong> {isConnected ? '✅ Conectado' : '❌ Desconectado'}
             </div>
-            
+
             <div style={{ marginBottom: '8px' }}>
               <strong>🚗 Veículos:</strong> {vehicles.length} ativo{vehicles.length !== 1 ? 's' : ''}
             </div>
@@ -206,8 +206,8 @@ function App() {
                         <span>{vehicle.speed ? `${vehicle.speed} km/h` : '0 km/h'}</span>
                       </div>
                       <div style={{ color: '#666', fontSize: '10px' }}>
-                        {vehicle.lastUpdate ? 
-                          `Atualizado: ${new Date(vehicle.lastUpdate).toLocaleTimeString('pt-BR')}` : 
+                        {vehicle.lastUpdate ?
+                          `Atualizado: ${new Date(vehicle.lastUpdate).toLocaleTimeString('pt-BR')}` :
                           'Sem dados de tempo'
                         }
                       </div>
@@ -221,7 +221,7 @@ function App() {
       )}
 
       {/* Mapa Principal */}
-      <div style={{ paddingTop: '60px', height: '100vh' }}>
+      <div style={{ paddingTop: '45px', height: '100vh' }}>
         <Map
           vehicles={vehicles}
           calculateETA={calculateETA}
@@ -235,7 +235,7 @@ function App() {
         <div style={{
           position: 'absolute',
           bottom: '20px',
-          left: '20px',
+          left: '45px',
           zIndex: 1001,
           background: '#f44336',
           color: 'white',
