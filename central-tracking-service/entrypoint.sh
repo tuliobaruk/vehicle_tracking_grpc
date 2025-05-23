@@ -1,13 +1,13 @@
 #!/bin/sh
-# Aguarda o Postgres ficar pronto (usa netcat)
-echo "⏳ Esperando o banco de dados em postgres:5432..."
-while ! nc -z postgres 5432; do
-  sleep 1
-done
-echo "✅ Banco de dados pronto!"
+set -e
 
-# Roda as migrations
+echo "Waiting for PostgreSQL to be ready..."
+npx wait-on -t 60000 tcp:postgres:5432
+
+echo "Running database migrations..."
+npx prisma migrate dev --name init
+
 npx prisma migrate deploy
 
-# Inicia o app
-npm run start:dev
+echo "Starting Central Tracking Service..."
+exec "$@"

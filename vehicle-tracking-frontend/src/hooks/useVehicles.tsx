@@ -15,6 +15,12 @@ interface WebSocketMessage {
   data: VehicleData[] | string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
+
+console.log('🌐 API URL:', API_URL);
+console.log('🔌 WebSocket URL:', WS_URL);
+
 export const useVehicles = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -47,7 +53,8 @@ export const useVehicles = () => {
     }
 
     try {
-      const ws = new WebSocket("ws://localhost:3001");
+      console.log(`Tentando conectar WebSocket em: ${WS_URL}`);
+      const ws = new WebSocket(WS_URL);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -64,6 +71,7 @@ export const useVehicles = () => {
           if (message.type === "vehicles" && Array.isArray(message.data)) {
             const vehicleList = message.data.map(convertVehicleData);
             setVehicles(vehicleList);
+            console.log(`📍 Recebido ${vehicleList.length} veículos`);
           } else if (message.type === "error") {
             console.error("❌ Erro do WebSocket:", message.data);
             setError(message.data as string);
@@ -116,12 +124,14 @@ export const useVehicles = () => {
   // Função para buscar veículos via HTTP (fallback)
   const fetchVehicles = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/vehicles");
+      console.log(`Buscando veículos via HTTP: ${API_URL}/api/vehicles`);
+      const response = await fetch(`${API_URL}/api/vehicles`);
       const result = await response.json();
 
       if (result.success && Array.isArray(result.data)) {
         const vehicleList = result.data.map(convertVehicleData);
         setVehicles(vehicleList);
+        console.log(`📊 Buscados ${vehicleList.length} veículos via HTTP`);
         setError(null);
       } else {
         throw new Error(result.message || "Erro ao buscar veículos");
@@ -140,7 +150,7 @@ export const useVehicles = () => {
       destinationLon: number
     ) => {
       try {
-        const response = await fetch("http://localhost:3001/api/eta", {
+        const response = await fetch(`${API_URL}/api/eta`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -171,7 +181,7 @@ export const useVehicles = () => {
   const calculateAllETAs = useCallback(
     async (destinationLat: number, destinationLon: number) => {
       try {
-        const response = await fetch("http://localhost:3001/api/eta/all", {
+        const response = await fetch(`${API_URL}/api/eta/all`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -200,7 +210,7 @@ export const useVehicles = () => {
   // Função para verificar status da conexão
   const checkStatus = useCallback(async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/status");
+      const response = await fetch(`${API_URL}/api/status`);
       const result = await response.json();
       return result;
     } catch (err) {
@@ -226,7 +236,7 @@ export const useVehicles = () => {
 
   // Fallback: se WebSocket não conectar, usa polling HTTP
   useEffect(() => {
-    let pollInterval: number;
+    let pollInterval: ReturnType<typeof setInterval>;
 
     if (!isConnected) {
       // Se não conectado via WebSocket, faz polling a cada 3 segundos

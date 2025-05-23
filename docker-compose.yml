@@ -1,97 +1,154 @@
-networks:
-  vehicle_tracking_net:
-    driver: bridge
-
-volumes:
-  postgres_data:
-
 services:
   postgres:
-    image: postgres:15
-    container_name: postgres
-    restart: always
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: vehicle_tracking
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
-      - vehicle_tracking_net
+      - tracking_network
 
   central-tracking-service:
-    build: ./central-tracking-service
-    container_name: central-tracking-service
-    depends_on:
-      - postgres
+    build:
+      context: .
+      dockerfile: central-tracking-service/Dockerfile
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/vehicle_tracking
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/vehicle_tracking?schema=public
+    volumes:
+      - ./protos:/app/protos
     ports:
       - "50051:50051"
-    volumes:
-      - ./central-tracking-service:/app
-      - ./protos:/protos:ro
-    working_dir: /app
-    command: /app/entrypoint.sh
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
     networks:
-      - vehicle_tracking_net
+      - tracking_network
 
   eta-service:
-    build: ./eta-service
-    container_name: eta-service
-    depends_on:
-      - postgres
+    build:
+      context: .
+      dockerfile: eta-service/Dockerfile
+    volumes:
+      - ./protos:/app/protos
+      - ./eta-service/src:/app/src
+    environment:
+      - TRACKING_SERVICE_HOST=central-tracking-service
+      - TRACKING_SERVICE_PORT=50051
     ports:
       - "50052:50052"
-    volumes:
-      - ./eta-service:/app
-      - ./protos:/protos:ro
-    working_dir: /app
-    command: npm run start
-    networks:
-      - vehicle_tracking_net
-
-  express-grpc-gateway:
-    build: ./express-grpc-gateway
-    container_name: express-grpc-gateway
-    depends_on:
-      - postgres
-    ports:
-      - "3001:3001"
-    volumes:
-      - ./express-grpc-gateway:/app
-      - ./protos:/protos:ro
-    working_dir: /app
-    command: node server.js
-    networks:
-      - vehicle_tracking_net
-
-  vehicle-grpc-client:
-    build: ./vehicle-grpc-client
-    container_name: vehicle-grpc-client
     depends_on:
       - central-tracking-service
-    volumes:
-      - ./vehicle-grpc-client:/app
-      - ./protos:/protos:ro
-    working_dir: /app
-    command: >
-      npm run start -- --file ./GPX/CampusJBG-CampusRecife.gpx --id carro-01 --interval 5 --v 50 --interactive
+    restart: unless-stopped
     networks:
-      - vehicle_tracking_net
+      - tracking_network
 
-  vehicle-tracking-frontend:
-    build: ./vehicle-tracking-frontend
-    container_name: vehicle-tracking-frontend
+  express-grpc-gateway:
+    build:
+      context: .
+      dockerfile: express-grpc-gateway/Dockerfile
+    volumes:
+      - ./protos:/app/protos
+    ports:
+      - "3001:3001"
+    environment:
+      - TRACKING_SERVICE_HOST=central-tracking-service
+      - TRACKING_SERVICE_PORT=50051
+      - ETA_SERVICE_HOST=eta-service
+      - ETA_SERVICE_PORT=50052
     depends_on:
-      - postgres
+      - central-tracking-service
+      - eta-service
+    restart: unless-stopped
+    networks:
+      - tracking_network
+
+  frontend:
+    build:
+      context: ./vehicle-tracking-frontend
+      dockerfile: Dockerfile
     ports:
       - "5173:5173"
     volumes:
-      - ./vehicle-tracking-frontend:/app
-    working_dir: /app
-    command: npm run dev
+      - ./vehicle-tracking-frontend/src:/app/src
+      - ./vehicle-tracking-frontend/public:/app/public
+    environment:
+      - VITE_API_URL=http://localhost:3001
+      - VITE_WS_URL=ws://localhost:3001
+    depends_on:
+      - express-grpc-gateway
+    restart: unless-stopped
     networks:
-      - vehicle_tracking_net
+      - tracking_network
+
+  vehicle-client-1:
+    build:
+      context: .
+      dockerfile: vehicle-grpc-client/Dockerfile
+    volumes:
+      - ./protos:/app/protos
+      - ./vehicle-grpc-client/GPX:/app/GPX
+    depends_on:
+      - central-tracking-service
+    command: node dist/client.js --file GPX/CampusJBG-Recife.gpx --id carro-01 --server central-tracking-service:50051 --vel 200
+    restart: unless-stopped
+    networks:
+      - tracking_network
+
+  vehicle-client-2:
+    build:
+      context: .
+      dockerfile: vehicle-grpc-client/Dockerfile
+    volumes:
+      - ./protos:/app/protos
+      - ./vehicle-grpc-client/GPX:/app/GPX
+    depends_on:
+      - central-tracking-service
+    command: node dist/client.js --file GPX/CampusJBG-Piedade.gpx --id van-01 --server central-tracking-service:50051 --vel 150
+    restart: unless-stopped
+    networks:
+      - tracking_network
+
+  eta-client:
+    build:
+      context: .
+      dockerfile: eta-service/Dockerfile
+    container_name: eta-client
+    volumes:
+      - ./protos:/app/protos
+      - ./eta-service/src:/app/src
+    environment:
+      - TRACKING_SERVICE_HOST=central-tracking-service
+      - TRACKING_SERVICE_PORT=50051
+      - ETA_SERVICE_HOST=eta-service
+      - ETA_SERVICE_PORT=50052
+    depends_on:
+      - central-tracking-service
+      - eta-service
+    restart: unless-stopped
+    networks:
+      - tracking_network
+    command: >
+      sh -c "
+      echo 'Waiting for services to be ready...' &&
+      sleep 35 &&
+      node dist/eta-client.js
+      "
+    tty: true
+    stdin_open: true
+
+networks:
+  tracking_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
