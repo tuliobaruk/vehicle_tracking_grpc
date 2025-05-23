@@ -115,13 +115,11 @@ function showMainMenu(): void {
   console.log("║ 1. eta [vehicle]    → Calcular ETA para veículo          ║");
   console.log("║ 2. eta-all          → Calcular ETA para todos            ║");
   console.log("║ 3. list             → Listar veículos conectados         ║");
-  console.log("║ 4. dest [local]     → Mudar destino                      ║");
-  console.log("║ 5. locations        → Ver locais disponíveis             ║");
-  console.log("║ 6. coord [lat] [lon]→ Definir coord. personalizada       ║");
-  console.log("║ 7. monitor          → Monitorar ETAs em tempo real       ║");
-  console.log("║ 8. compare          → Comparar todos os veículos          ║");
-  console.log("║ 9. help             → Mostrar ajuda detalhada            ║");
-  console.log("║ 0. clear            → Limpar tela                        ║");
+  console.log("║ 4. locations        → Ver locais disponíveis             ║");
+  console.log("║ 5. monitor          → Monitorar ETAs em tempo real       ║");
+  console.log("║ 6. compare          → Comparar todos os veículos          ║");
+  console.log("║ 7. help             → Mostrar ajuda detalhada            ║");
+  console.log("║ 8. clear            → Limpar tela                        ║");
   console.log("║ q. quit             → Sair                               ║");
   console.log("╚═══════════════════════════════════════════════════════════╝");
   console.log("");
@@ -418,44 +416,6 @@ async function handleCommand(input: string): Promise<void> {
         connectedVehicles.forEach((vehicle, index) => {
           console.log(`  ${index + 1}. ${vehicle}`);
         });
-      }
-      break;
-
-    case "dest":
-      if (args.length === 0) {
-        console.log(
-          '❌ Especifique um destino. Use "locations" para ver opções.'
-        );
-      } else {
-        const locationKey = args[0].toLowerCase();
-        const location = LOCATIONS[locationKey];
-        if (location) {
-          currentDestination = location;
-          console.log(`✅ Destino alterado para: ${currentDestination.name}`);
-          console.log(
-            `📍 Coordenadas: ${currentDestination.lat}, ${currentDestination.lon}`
-          );
-        } else {
-          console.log(`❌ Local "${args[0]}" não encontrado.`);
-          console.log('💡 Use "locations" para ver os locais disponíveis.');
-        }
-      }
-      break;
-
-    case "coord":
-      if (args.length !== 2) {
-        console.log("❌ Use: coord [latitude] [longitude]");
-        console.log("💡 Exemplo: coord -8.0476 -34.8770");
-      } else {
-        const lat = parseFloat(args[0]);
-        const lon = parseFloat(args[1]);
-        if (isNaN(lat) || isNaN(lon)) {
-          console.log("❌ Coordenadas inválidas. Use números válidos.");
-        } else {
-          currentDestination = { lat, lon, name: "Coordenadas Personalizadas" };
-          console.log(`✅ Destino definido para coordenadas personalizadas`);
-          console.log(`📍 Latitude: ${lat}, Longitude: ${lon}`);
-        }
       }
       break;
 
