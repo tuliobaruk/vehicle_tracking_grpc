@@ -2,7 +2,7 @@ import path from "path";
 import * as grpc from "@grpc/grpc-js";
 const protoLoader = require("@grpc/proto-loader");
 
-const PROTO_PATH = path.resolve(__dirname, "../protos/eta.proto");
+const PROTO_PATH = path.resolve(__dirname, "../../protos/eta.proto");
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
   longs: String,
@@ -13,7 +13,7 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 const etaProto = grpc.loadPackageDefinition(packageDefinition) as any;
 
 // Cliente para comunicar com a Central de Rastreamento
-const TRACKING_PROTO_PATH = path.resolve(__dirname, "../protos/tracking.proto");
+const TRACKING_PROTO_PATH = path.resolve(__dirname, "../../protos/tracking.proto");
 const trackingPackageDef = protoLoader.loadSync(TRACKING_PROTO_PATH, {
   keepCase: true,
   longs: String,

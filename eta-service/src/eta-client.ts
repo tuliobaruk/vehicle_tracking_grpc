@@ -4,7 +4,7 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 
 // Cliente ETA
-const PROTO_PATH = path.resolve(__dirname, '../protos/eta.proto');
+const PROTO_PATH = path.resolve(__dirname, '../../protos/eta.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
   longs: String,
@@ -16,7 +16,7 @@ const etaProto = grpc.loadPackageDefinition(packageDefinition) as any;
 const etaClient = new etaProto.eta.ETAService('localhost:50052', grpc.credentials.createInsecure());
 
 // Cliente Tracking (para listar veículos)
-const TRACKING_PROTO_PATH = path.resolve(__dirname, '../protos/tracking.proto');
+const TRACKING_PROTO_PATH = path.resolve(__dirname, '../../protos/tracking.proto');
 const trackingPackageDef = protoLoader.loadSync(TRACKING_PROTO_PATH, {
   keepCase: true,
   longs: String,
@@ -99,12 +99,12 @@ function showLocations(): void {
   console.log('┌────────────────┬─────────────────────────┬─────────────────────┐');
   console.log('│ Código         │ Nome                    │ Coordenadas         │');
   console.log('├────────────────┼─────────────────────────┼─────────────────────┤');
-  
+
   Object.entries(LOCATIONS).forEach(([code, loc]) => {
     const coords = `${loc.lat}, ${loc.lon}`;
     console.log(`│ ${code.padEnd(14)} │ ${loc.name.padEnd(23)} │ ${coords.padEnd(19)} │`);
   });
-  
+
   console.log('└────────────────┴─────────────────────────┴─────────────────────┘');
   console.log('\nUso: dest [código] (ex: dest recife)');
   console.log('');
@@ -139,7 +139,7 @@ function calculateSingleETA(vehicleId: string): void {
       console.error(`❌ Erro ao calcular ETA: ${error.message}`);
       return;
     }
-    
+
     formatETA(response);
     console.log(`\n🕐 Calculado em: ${new Date(response.calculatedAt).toLocaleString('pt-BR')}`);
   });
@@ -162,14 +162,14 @@ function calculateAllETAs(): void {
     }
 
     const etas = response.etas || [];
-    
+
     if (etas.length === 0) {
       console.log('📭 Nenhum veículo ativo encontrado');
       return;
     }
 
     console.log(`\n🏆 RANKING DE CHEGADA (${etas.length} veículo${etas.length > 1 ? 's' : ''}):`);
-    
+
     etas.forEach((eta: any, index: number) => {
       console.log(`\n${index + 1}º lugar:`);
       formatETA(eta);
@@ -205,7 +205,7 @@ function startMonitoring(): void {
   // Para o monitoramento quando o usuário pressionar ENTER
   const originalHandler = rl.listeners('line')[0];
   rl.removeAllListeners('line');
-  
+
   rl.once('line', () => {
     clearInterval(monitorInterval);
     console.log('\n✅ Monitoramento interrompido');
@@ -229,7 +229,7 @@ function compareVehicles(): void {
     }
 
     const etas = response.etas || [];
-    
+
     if (etas.length === 0) {
       console.log('📭 Nenhum veículo para comparar');
       return;
@@ -246,7 +246,7 @@ function compareVehicles(): void {
       const speed = eta.currentSpeed.toString().padStart(8);
       const time = eta.estimatedMinutes.toString().padStart(7);
       const arrival = new Date(eta.arrivalTime).toLocaleTimeString('pt-BR');
-      
+
       console.log(`│ ${vehicle} │ ${distance} │ ${speed} │ ${time} │ ${arrival.padEnd(19)} │`);
     });
 
@@ -410,18 +410,18 @@ async function handleCommand(input: string): Promise<void> {
 async function main(): Promise<void> {
   console.log('🚀 Conectando aos serviços...');
   await updateVehicleList();
-  
+
   showMainMenu();
-  
+
   console.log('Digite um comando (ou "help" para ajuda):');
-  
+
   rl.on('line', async (input) => {
     try {
       await handleCommand(input);
     } catch (error) {
       console.error('❌ Erro ao executar comando:', error);
     }
-    
+
     setTimeout(() => {
       console.log('\n' + '─'.repeat(40));
       console.log('Digite próximo comando (ou "help" para ajuda):');

@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 const protoLoader = require("@grpc/proto-loader");
 
-const PROTO_PATH = path.resolve(__dirname, "../protos/tracking.proto");
+const PROTO_PATH = path.resolve(__dirname, "../../protos/tracking.proto");
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
   longs: String,
@@ -123,7 +123,7 @@ async function registerActiveConnection(vehicleId: string): Promise<boolean> {
       // Verificar se a conexão está ativa ou é antiga
       const staleMinutes = 2;
       const staleThreshold = new Date(Date.now() - staleMinutes * 60 * 1000);
-      
+
       if (existingConnection.lastPing >= staleThreshold) {
         // Conexão já existe e está ativa
         console.log(
@@ -264,7 +264,7 @@ function streamLocation(call: grpc.ServerDuplexStream<any, any>) {
 
       call.write({
         vehicleId: vehicleId,
-        command: "CONFLITO_ID", 
+        command: "CONFLITO_ID",
         status: "ERROR_DUPLICATE_ID",
         timestamp: Date.now(),
       });

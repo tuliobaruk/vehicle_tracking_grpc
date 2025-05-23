@@ -17,8 +17,8 @@ app.use(cors());
 app.use(express.json());
 
 // Configuração do cliente gRPC
-const TRACKING_PROTO_PATH = path.resolve(__dirname, './protos/tracking.proto');
-const ETA_PROTO_PATH = path.resolve(__dirname, './protos/eta.proto');
+const TRACKING_PROTO_PATH = path.resolve(__dirname, '../protos/tracking.proto');
+const ETA_PROTO_PATH = path.resolve(__dirname, '../protos/eta.proto');
 
 const trackingPackageDef = protoLoader.loadSync(TRACKING_PROTO_PATH, {
   keepCase: true,
@@ -49,18 +49,18 @@ const vehiclePositions = new Map();
 // Conexão WebSocket para atualizações em tempo real
 wss.on('connection', (ws) => {
   console.log('🔌 Cliente WebSocket conectado');
-  
+
   // Envia posições atuais ao conectar
   const currentVehicles = Array.from(vehiclePositions.values());
   ws.send(JSON.stringify({
     type: 'vehicles',
     data: currentVehicles
   }));
-  
+
   ws.on('close', () => {
     console.log('🔌 Cliente WebSocket desconectado');
   });
-  
+
   ws.on('error', (error) => {
     console.error('❌ Erro no WebSocket:', error.message);
   });
@@ -73,7 +73,7 @@ function broadcastVehiclePositions() {
     type: 'vehicles',
     data: vehicles
   });
-  
+
   wss.clients.forEach((client) => {
     if (client.readyState === client.OPEN) {
       try {
@@ -93,10 +93,10 @@ function monitorVehicles() {
         console.error('❌ Erro ao listar veículos:', error.message);
         return;
       }
-      
+
       const vehicles = response.vehicles || [];
       let hasUpdates = false;
-      
+
       vehicles.forEach((vehicle) => {
         if (vehicle.lastPosition) {
           const vehicleData = {
@@ -107,11 +107,11 @@ function monitorVehicles() {
             timestamp: vehicle.lastPosition.timestamp,
             lastUpdate: Date.now()
           };
-          
+
           // Verifica se houve mudança de posição
           const existing = vehiclePositions.get(vehicle.vehicleId);
-          if (!existing || 
-              existing.lat !== vehicleData.lat || 
+          if (!existing ||
+              existing.lat !== vehicleData.lat ||
               existing.lon !== vehicleData.lon ||
               existing.vel !== vehicleData.vel) {
             vehiclePositions.set(vehicle.vehicleId, vehicleData);
@@ -119,7 +119,7 @@ function monitorVehicles() {
           }
         }
       });
-      
+
       // Remove veículos offline (sem atualização há mais de 30 segundos)
       const now = Date.now();
       vehiclePositions.forEach((vehicle, vehicleId) => {
@@ -128,7 +128,7 @@ function monitorVehicles() {
           hasUpdates = true;
         }
       });
-      
+
       // Broadcast se houve atualizações
       if (hasUpdates) {
         broadcastVehiclePositions();
@@ -153,14 +153,14 @@ app.get('/api/vehicles', (req, res) => {
 app.get('/api/vehicles/:id', (req, res) => {
   const vehicleId = req.params.id;
   const vehicle = vehiclePositions.get(vehicleId);
-  
+
   if (!vehicle) {
     return res.status(404).json({
       success: false,
       message: `Veículo ${vehicleId} não encontrado`
     });
   }
-  
+
   res.json({
     success: true,
     data: vehicle
@@ -170,20 +170,20 @@ app.get('/api/vehicles/:id', (req, res) => {
 // POST /api/eta - Calcular ETA para um veículo
 app.post('/api/eta', (req, res) => {
   const { vehicleId, destinationLat, destinationLon } = req.body;
-  
+
   if (!vehicleId || !destinationLat || !destinationLon) {
     return res.status(400).json({
       success: false,
       message: 'Parâmetros obrigatórios: vehicleId, destinationLat, destinationLon'
     });
   }
-  
+
   const request = {
     vehicleId,
     destinationLat,
     destinationLon
   };
-  
+
   etaClient.CalculateETA(request, (error, response) => {
     if (error) {
       return res.status(500).json({
@@ -191,7 +191,7 @@ app.post('/api/eta', (req, res) => {
         message: error.message
       });
     }
-    
+
     res.json({
       success: true,
       data: response
@@ -202,19 +202,19 @@ app.post('/api/eta', (req, res) => {
 // POST /api/eta/all - Calcular ETA para todos os veículos
 app.post('/api/eta/all', (req, res) => {
   const { destinationLat, destinationLon } = req.body;
-  
+
   if (!destinationLat || !destinationLon) {
     return res.status(400).json({
       success: false,
       message: 'Parâmetros obrigatórios: destinationLat, destinationLon'
     });
   }
-  
+
   const request = {
     destinationLat,
     destinationLon
   };
-  
+
   etaClient.GetMultipleETAs(request, (error, response) => {
     if (error) {
       return res.status(500).json({
@@ -222,7 +222,7 @@ app.post('/api/eta/all', (req, res) => {
         message: error.message
       });
     }
-    
+
     res.json({
       success: true,
       data: response
@@ -274,7 +274,7 @@ server.listen(PORT, () => {
   console.log(`   GET  http://localhost:${PORT}/api/status`);
   console.log(`   WS   ws://localhost:${PORT}`);
   console.log('='.repeat(50));
-  
+
   // Inicia o monitoramento de veículos
   monitorVehicles();
 });

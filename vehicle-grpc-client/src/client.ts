@@ -24,7 +24,7 @@ const vehicleVel: number = argv.vel ?? 50;
 const serverAddress: string = argv.server;
 const interactiveMode: boolean = argv.interactive;
 
-const PROTO_PATH = path.resolve(__dirname, '../protos/tracking.proto');
+const PROTO_PATH = path.resolve(__dirname, '../../protos/tracking.proto');
 const packageDef = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,
   longs: String,
