@@ -236,47 +236,6 @@ export const Map = ({ vehicles, calculateETA, calculateAllETAs }: MapProps) => {
         )}
 
         {/* Exibir ETAs de Todos os Veículos */}
-        {allETAs && allETAs.etas && (
-          <div style={{
-            marginTop: '16px',
-            padding: '12px',
-            background: '#fff3e0',
-            borderRadius: '6px',
-            border: '1px solid #FF9800'
-          }}>
-            <h4 style={{ margin: '0 0 8px 0', color: '#E65100', fontSize: '14px' }}>
-              🏆 Ranking de Chegada ({allETAs.etas.length} veículos)
-            </h4>
-            {allETAs.etas.slice(0, 5).map((eta: ETAResponse, index: number) => (
-              <div key={eta.vehicleId} style={{
-                padding: '6px',
-                margin: '4px 0',
-                background: index === 0 ? '#4CAF50' : '#f5f5f5',
-                color: index === 0 ? 'white' : 'black',
-                borderRadius: '4px',
-                fontSize: '11px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span><strong>{index + 1}º {eta.vehicleId}</strong></span>
-                  <span>{formatTime(eta.estimatedMinutes)}</span>
-                </div>
-                <div style={{ fontSize: '10px', opacity: 0.8 }}>
-                  {eta.distanceKm} km • {eta.currentSpeed} km/h
-                </div>
-              </div>
-            ))}
-
-            {allETAs.etas.length > 5 && (
-              <div style={{ fontSize: '10px', color: '#666', textAlign: 'center', marginTop: '8px' }}>
-                ... e mais {allETAs.etas.length - 5} veículo(s)
-              </div>
-            )}
-
-            <div style={{ marginTop: '8px', fontSize: '10px', color: '#666' }}>
-              📊 Calculado em: {formatArrivalTime(allETAs.calculatedAt)}
-            </div>
-          </div>
-        )}
 
         {loading && (
           <div style={{
