@@ -1,6 +1,8 @@
-FROM node:20-slim
+FROM node:20-alpine
 
 WORKDIR /app
+
+RUN apk add --no-cache bash curl wget
 
 COPY vehicle-grpc-client/package*.json ./
 RUN npm install
@@ -16,4 +18,4 @@ ENV TRACKING_SERVER="central-tracking-service:50051"
 ENV INTERVAL=5
 ENV VEHICLE_SPEED=50
 
-CMD ["node", "dist/client.js", "--file", "${GPX_FILE}", "--id", "${VEHICLE_ID}", "--server", "${TRACKING_SERVER}", "--interval", "${INTERVAL}", "--vel", "${VEHICLE_SPEED}"]
+CMD ["tail", "-f", "/dev/null"]

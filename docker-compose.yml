@@ -90,34 +90,6 @@ services:
     networks:
       - tracking_network
 
-  vehicle-client-1:
-    build:
-      context: .
-      dockerfile: vehicle-grpc-client/Dockerfile
-    volumes:
-      - ./protos:/app/protos
-      - ./vehicle-grpc-client/GPX:/app/GPX
-    depends_on:
-      - central-tracking-service
-    command: node dist/client.js --file GPX/CampusJBG-Recife.gpx --id carro-01 --server central-tracking-service:50051 --vel 200
-    restart: unless-stopped
-    networks:
-      - tracking_network
-
-  vehicle-client-2:
-    build:
-      context: .
-      dockerfile: vehicle-grpc-client/Dockerfile
-    volumes:
-      - ./protos:/app/protos
-      - ./vehicle-grpc-client/GPX:/app/GPX
-    depends_on:
-      - central-tracking-service
-    command: node dist/client.js --file GPX/CampusJBG-Piedade.gpx --id van-01 --server central-tracking-service:50051 --vel 150
-    restart: unless-stopped
-    networks:
-      - tracking_network
-
   eta-client:
     build:
       context: .
@@ -146,6 +118,26 @@ services:
     tty: true
     stdin_open: true
 
+  vehicle-client:
+      build:
+        context: .
+        dockerfile: vehicle-grpc-client/Dockerfile
+      container_name: vehicle-client
+      volumes:
+        - ./protos:/app/protos
+        - ./vehicle-grpc-client/GPX:/app/GPX
+      environment:
+        - TRACKING_SERVICE_HOST=central-tracking-service
+        - TRACKING_SERVICE_PORT=50051
+      depends_on:
+        - central-tracking-service
+      restart: unless-stopped
+      networks:
+        - tracking_network
+      command: tail -f /dev/null
+      tty: true
+      stdin_open: true
+      
 networks:
   tracking_network:
     driver: bridge
