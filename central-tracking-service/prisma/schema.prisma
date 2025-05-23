@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:postgres@localhost:5432/vehicle_tracking?schema=public"
+}
+
+model Vehicle {
+  id           Int      @id @default(autoincrement())
+  vehicleId    String   @unique @map("vehicle_id") @db.VarChar(50)
+  firstSeenAt  DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt   DateTime @updatedAt @map("last_seen_at")
+  isActive     Boolean  @default(true) @map("is_active")
+  totalPoints  Int      @default(0) @map("total_points")
+  currentLat   Decimal? @map("current_lat") @db.Decimal(10, 8)
+  currentLon   Decimal? @map("current_lon") @db.Decimal(11, 8)
+  currentSpeed Int      @default(0) @map("current_speed")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  positions         VehiclePosition[]
+  activeConnection  ActiveConnection?
+
+  @@map("vehicles")
+}
+
+model VehiclePosition {
+  id         Int      @id @default(autoincrement())
+  vehicleId  String   @map("vehicle_id") @db.VarChar(50)
+  lat        Decimal  @db.Decimal(10, 8)
+  lon        Decimal  @db.Decimal(11, 8)
+  speed      Int      @default(0)
+  timestamp  BigInt
+  receivedAt DateTime @default(now()) @map("received_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([timestamp])
+  @@index([receivedAt])
+  @@map("vehicle_positions")
+}
+
+model ActiveConnection {
+  id             Int      @id @default(autoincrement())
+  vehicleId      String   @unique @map("vehicle_id") @db.VarChar(50)
+  connectedAt    DateTime @default(now()) @map("connected_at")
+  lastPing       DateTime @default(now()) @map("last_ping")
+  serverInstance String   @map("server_instance") @db.VarChar(100)
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([lastPing])
+  @@map("active_connections")
+}
