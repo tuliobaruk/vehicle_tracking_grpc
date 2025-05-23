@@ -1,0 +1,97 @@
+networks:
+  vehicle_tracking_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: vehicle_tracking
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - vehicle_tracking_net
+
+  central-tracking-service:
+    build: ./central-tracking-service
+    container_name: central-tracking-service
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/vehicle_tracking
+    ports:
+      - "50051:50051"
+    volumes:
+      - ./central-tracking-service:/app
+      - ./protos:/protos:ro
+    working_dir: /app
+    command: /app/entrypoint.sh
+    networks:
+      - vehicle_tracking_net
+
+  eta-service:
+    build: ./eta-service
+    container_name: eta-service
+    depends_on:
+      - postgres
+    ports:
+      - "50052:50052"
+    volumes:
+      - ./eta-service:/app
+      - ./protos:/protos:ro
+    working_dir: /app
+    command: npm run start
+    networks:
+      - vehicle_tracking_net
+
+  express-grpc-gateway:
+    build: ./express-grpc-gateway
+    container_name: express-grpc-gateway
+    depends_on:
+      - postgres
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./express-grpc-gateway:/app
+      - ./protos:/protos:ro
+    working_dir: /app
+    command: node server.js
+    networks:
+      - vehicle_tracking_net
+
+  vehicle-grpc-client:
+    build: ./vehicle-grpc-client
+    container_name: vehicle-grpc-client
+    depends_on:
+      - central-tracking-service
+    volumes:
+      - ./vehicle-grpc-client:/app
+      - ./protos:/protos:ro
+    working_dir: /app
+    command: >
+      npm run start -- --file ./GPX/CampusJBG-CampusRecife.gpx --id carro-01 --interval 5 --v 50 --interactive
+    networks:
+      - vehicle_tracking_net
+
+  vehicle-tracking-frontend:
+    build: ./vehicle-tracking-frontend
+    container_name: vehicle-tracking-frontend
+    depends_on:
+      - postgres
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./vehicle-tracking-frontend:/app
+    working_dir: /app
+    command: npm run dev
+    networks:
+      - vehicle_tracking_net
